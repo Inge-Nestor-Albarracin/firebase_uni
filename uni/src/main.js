@@ -1,2 +1,3 @@
 import mostrarRegistro from "./Componentes/registro"
-mostrarRegistro();
+import mostrarLogin from './Componentes/login';
+mostrarLogin();
