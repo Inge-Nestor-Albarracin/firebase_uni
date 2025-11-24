@@ -4,7 +4,6 @@ import { collection, addDoc } from 'firebase/firestore';
 export default async function mostrarOriginal() {
   const appContainer = document.getElementById("app");
   
-  // Mantener navegación existente
   const existingNav = document.querySelector('.main-nav');
   appContainer.innerHTML = '';
   if (existingNav) {
@@ -13,14 +12,18 @@ export default async function mostrarOriginal() {
   
   const content = document.createElement('div');
   content.className = 'original-content';
-  content.innerHTML = '<h2>🎓 Cargando universidades de Colombia...</h2>';
+  content.innerHTML = `
+    <div class="random-university-container">
+      <h2>🎰 ¡Sorpresa Universitaria!</h2>
+      <p class="funny-text">"Nosotros escogemos por ti, no te preocupes jajaja"</p>
+      <div class="loading">Buscando una universidad especial...</div>
+    </div>
+  `;
   appContainer.appendChild(content);
 
   try {
-    // Intentar cargar desde API
+    // Cargar universidades
     let universidades = [];
-    let usingFallback = false;
-    
     try {
       const response = await fetch('http://universities.hipolabs.com/search?country=colombia');
       if (response.ok) {
@@ -29,156 +32,59 @@ export default async function mostrarOriginal() {
         throw new Error('API no disponible');
       }
     } catch (apiError) {
-      console.warn('Usando datos de respaldo:', apiError);
-      usingFallback = true;
       universidades = getFallbackUniversities();
     }
 
-    content.innerHTML = '';
+    // Seleccionar una universidad aleatoria
+    const randomIndex = Math.floor(Math.random() * universidades.length);
+    const universidadAleatoria = universidades[randomIndex];
     
-    const header = document.createElement('div');
-    header.className = 'original-header';
-    header.innerHTML = `
-      <h2>🏫 Universidades de Colombia</h2>
-      <p>${usingFallback ? '📋 Usando datos de demostración' : `Encontradas: ${universidades.length} universidades`}</p>
-    `;
-    content.appendChild(header);
+    const nombre = universidadAleatoria.name || 'Universidad Misteriosa';
+    const dominio = universidadAleatoria.domains?.[0] || 'dominio-secreto.edu.co';
+    const web = universidadAleatoria.web_pages?.[0] || '';
 
-    // Contenedor principal
-    const mainContainer = document.createElement('div');
-    mainContainer.className = 'universities-container';
-    
-    // Lista de universidades
-    const universitiesList = document.createElement('div');
-    universitiesList.className = 'universities-list';
-    
-    // Sección de favoritas
-    const favoritesSection = document.createElement('div');
-    favoritesSection.className = 'favorites-section';
-    favoritesSection.innerHTML = `
-      <h3>⭐ Mis Universidades Favoritas</h3>
-      <div class="favorites-list" id="favoritesList"></div>
-      <button id="saveFavorites" disabled>💾 Guardar Favoritas en Firebase</button>
-    `;
-
-    mainContainer.appendChild(universitiesList);
-    mainContainer.appendChild(favoritesSection);
-    content.appendChild(mainContainer);
-
-    let favoritas = [];
-
-    // Mostrar universidades (máximo 20 para rendimiento)
-    universidades.slice(0, 20).forEach(universidad => {
-      const card = document.createElement('div');
-      card.className = 'university-card';
-      
-      const nombre = universidad.name || 'Universidad Sin Nombre';
-      const dominio = universidad.domains?.[0] || 'No disponible';
-      const web = universidad.web_pages?.[0] || '';
-      
-      card.innerHTML = `
-        <h4>${nombre}</h4>
-        <p>🌐 ${dominio}</p>
-        <div class="university-actions">
-          ${web ? `<a href="${web}" target="_blank">🔗 Sitio web</a>` : '<span>🌐 Sin sitio web</span>'}
-          <button class="btn-favorite">⭐ Agregar a Favoritas</button>
-        </div>
-      `;
-      
-      const favoriteBtn = card.querySelector('.btn-favorite');
-      favoriteBtn.onclick = () => {
-        if (!favoritas.find(fav => fav.name === nombre)) {
-          favoritas.push({
-            name: nombre,
-            domain: dominio,
-            web_page: web,
-            addedAt: new Date().toLocaleString()
-          });
-          updateFavorites();
-          favoriteBtn.disabled = true;
-          favoriteBtn.textContent = '✓ Agregada';
-          favoriteBtn.classList.add('added');
-        }
-      };
-      
-      universitiesList.appendChild(card);
-    });
-
-    function updateFavorites() {
-      const favoritesList = document.getElementById('favoritesList');
-      const saveBtn = document.getElementById('saveFavorites');
-      
-      favoritesList.innerHTML = '';
-      
-      if (favoritas.length === 0) {
-        favoritesList.innerHTML = '<p class="no-favorites">No hay universidades favoritas aún</p>';
-      } else {
-        favoritas.forEach((universidad, index) => {
-          const item = document.createElement('div');
-          item.className = 'favorite-item';
-          item.innerHTML = `
-            <div class="favorite-info">
-              <strong>${universidad.name}</strong>
-              <br><small>${universidad.domain}</small>
-              <br><small>Agregada: ${universidad.addedAt}</small>
-            </div>
-            <button class="btn-remove" data-index="${index}">🗑️</button>
-          `;
-          favoritesList.appendChild(item);
-        });
-      }
-      
-      saveBtn.disabled = favoritas.length === 0;
-      saveBtn.textContent = favoritas.length > 0 
-        ? `💾 Guardar ${favoritas.length} Favorita(s)` 
-        : '💾 Guardar Favoritas';
-    }
-
-    // Eliminar favoritas
-    content.addEventListener('click', (e) => {
-      if (e.target.classList.contains('btn-remove')) {
-        const index = parseInt(e.target.dataset.index);
-        const universidadEliminada = favoritas[index];
-        favoritas.splice(index, 1);
-        updateFavorites();
+    content.innerHTML = `
+      <div class="random-university-container">
+        <h2>🎰 ¡Sorpresa Universitaria!</h2>
+        <p class="funny-text">"Nosotros escogemos por ti, no te preocupes jajaja"</p>
         
-        // Reactivar botón en la card
-        document.querySelectorAll('.university-card').forEach(card => {
-          const nombre = card.querySelector('h4').textContent;
-          if (nombre === universidadEliminada.name) {
-            const boton = card.querySelector('.btn-favorite');
-            boton.disabled = false;
-            boton.textContent = '⭐ Agregar a Favoritas';
-            boton.classList.remove('added');
-          }
-        });
-      }
-    });
+        <div class="random-card">
+          <div class="university-badge">🎓 UNIVERSIDAD SELECCIONADA</div>
+          <h3 class="university-name">${nombre}</h3>
+          <div class="university-details">
+            <p>🌐 <strong>Dominio:</strong> ${dominio}</p>
+            ${web ? `<p>🔗 <strong>Sitio web:</strong> <a href="${web}" target="_blank">Visitar página oficial</a></p>` : ''}
+          </div>
+          <div class="fun-fact">
+            <p>💡 <em>¡Esta podría ser tu alma mater! ¿Te animas a guardarla?</em></p>
+          </div>
+          <button id="saveRandomUniversity" class="save-random-btn">
+            💾 Guardar esta Joya en Firebase
+          </button>
+          <button id="anotherUniversity" class="another-btn">
+            🔄 ¿Otra? ¡Dame más sorpresas!
+          </button>
+        </div>
+      </div>
+    `;
 
-    // Guardar en Firebase
-    document.getElementById('saveFavorites').onclick = async () => {
+    // Guardar universidad aleatoria
+    document.getElementById('saveRandomUniversity').onclick = async () => {
       try {
         const objetoGuardar = {
           fecha: new Date(),
-          favoritas: favoritas,
-          totalFavoritas: favoritas.length,
-          tipo: 'universidades_colombia',
-          usuario: auth.currentUser?.email || 'anonimo'
+          universidad_aleatoria: {
+            name: nombre,
+            domain: dominio,
+            web_page: web
+          },
+          tipo: 'universidad_sorpresa',
+          usuario: auth.currentUser?.email || 'anonimo',
+          mensaje: '¡Seleccionada automáticamente por nuestro sistema!'
         };
 
         await addDoc(collection(db, "proyectos"), objetoGuardar);
-        alert(`✅ ${favoritas.length} universidades guardadas en Firebase!`);
-        
-        // Resetear
-        favoritas = [];
-        updateFavorites();
-        
-        // Reactivar todos los botones
-        document.querySelectorAll('.btn-favorite').forEach(boton => {
-          boton.disabled = false;
-          boton.textContent = '⭐ Agregar a Favoritas';
-          boton.classList.remove('added');
-        });
+        alert(`✅ ¡${nombre} guardada en Firebase como tu universidad sorpresa! 🎉`);
         
       } catch (error) {
         console.error("Error al guardar:", error);
@@ -186,45 +92,47 @@ export default async function mostrarOriginal() {
       }
     };
 
-    // Inicializar lista de favoritas
-    updateFavorites();
+    // Buscar otra universidad
+    document.getElementById('anotherUniversity').onclick = () => {
+      mostrarOriginal(); // Recargar para nueva aleatoria
+    };
 
   } catch (error) {
     content.innerHTML = `
       <div class="error-message">
-        <h3>❌ Error crítico</h3>
-        <p>${error.message}</p>
-        <button onclick="location.reload()">🔄 Reintentar</button>
+        <h3>❌ ¡Ups! Algo salió mal</h3>
+        <p>No pudimos encontrar tu universidad sorpresa</p>
+        <p><em>${error.message}</em></p>
+        <button onclick="mostrarOriginal()">🔄 Intentar de nuevo</button>
       </div>
     `;
   }
 }
 
-// Datos de respaldo
 function getFallbackUniversities() {
   return [
     {
-      name: "Universidad Nacional de Colombia",
+      name: "Universidad Nacional de Colombia - Sede Bogotá",
       domains: ["unal.edu.co"],
       web_pages: ["https://unal.edu.co/"]
     },
     {
-      name: "Universidad de Los Andes",
+      name: "Universidad de Los Andes - Facultad de Ingeniería", 
       domains: ["uniandes.edu.co"],
       web_pages: ["https://uniandes.edu.co/"]
     },
     {
-      name: "Universidad de Antioquia", 
+      name: "Universidad de Antioquia - Campus Central",
       domains: ["udea.edu.co"],
       web_pages: ["https://www.udea.edu.co/"]
     },
     {
-      name: "Pontificia Universidad Javeriana",
+      name: "Pontificia Universidad Javeriana - Sede Principal",
       domains: ["javeriana.edu.co"],
       web_pages: ["https://www.javeriana.edu.co/"]
     },
     {
-      name: "Universidad del Valle",
+      name: "Universidad del Valle - Cali",
       domains: ["univalle.edu.co"],
       web_pages: ["https://www.univalle.edu.co/"]
     }
